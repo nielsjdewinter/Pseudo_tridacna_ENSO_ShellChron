@@ -56,12 +56,14 @@ for(i in 1:N){
         )
         Times <- D_diff / GR_sampled # Calculate time steps
         Times[which(Times == Inf)] <- 0 # Handle growth stops
-        Times_days <- first_sample_time + Times * Days_tot / (sum(Times) + first_sample_time) # Convert time steps to total number of days
-        Times_days_cum <- cumsum(Times_days) # Find cumulative time steps
         if(year == 1){
+            Times_days <- first_sample_time + Times * Days_tot / (sum(Times) + first_sample_time) # Convert time steps to total number of days, add the first sampled time point for the first year
+            Times_days_cum <- cumsum(Times_days) # Find cumulative time steps
             simulated_age_models[which(merged_dat$year == year), i] <- Times_days_cum
         } else {
-            simulated_age_models[which(merged_dat$year == year), i] <- Times_days_cum + 365 * (year - 1)
+            Times_days <- Times * Days_tot / sum(Times) # Convert time steps to total number of days
+            Times_days_cum <- cumsum(Times_days) # Find cumulative time steps
+            simulated_age_models[which(merged_dat$year == year), i] <- Times_days_cum + simulated_age_models[which(merged_dat$YEARMARKER == 1 & merged_dat$year == year) - 1, i] # Add cumulative time steps to last time point of previous year
         }
     }
     # Fill in last year
