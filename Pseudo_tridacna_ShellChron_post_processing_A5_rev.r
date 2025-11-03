@@ -1,15 +1,15 @@
 # Script to post process ShellChron results and avoid negative time jumps and missed years due to low growth rate estimates
 # by Niels J. de Winter
 # Project "Pseudo_tridacna_ShellChron_Han_Tao.Rproj"
-# Specimen A5
+# Specimen A5_rev
 
 require(tidyverse)
 require(ggpubr)
 
 # Load data
-dat <- read.csv("A5/A5.csv") # Original d18O data with year markers
-age_model_results <- read.csv("A5/Age_model_results.csv") # Results in terms of age (DOY)
-Growth_rate_results <- read.csv("A5/Growth_rate_results.csv") # Results in terms of growth rate (um/day)
+dat <- read.csv("A5_rev/A5_rev.csv") # Original d18O data with year markers
+age_model_results <- read.csv("A5_rev/Age_model_results.csv") # Results in terms of age (DOY)
+Growth_rate_results <- read.csv("A5_rev/Growth_rate_results.csv") # Results in terms of growth rate (um/day)
 
 # Combine relevant data into one dataframe and replace NAs with 0
 merged_dat <- select(dat, D, d18Oc, YEARMARKER) |>
@@ -96,8 +96,8 @@ merged_dat$day_new_lower <- apply(simulated_age_models, 1, quantile, probs = 0.0
 merged_dat$day_new_upper <- apply(simulated_age_models, 1, quantile, probs = 0.975)
 
 # Export results
-write.csv(merged_dat, "A5/Realigned_age_model_results_MC.csv", row.names = FALSE)
-write.csv(simulated_age_models, "A5/Realigned_age_model_simulations.csv", row.names = FALSE)
+write.csv(merged_dat, "A5_rev/Realigned_age_model_results_MC.csv", row.names = FALSE)
+write.csv(simulated_age_models, "A5_rev/Realigned_age_model_simulations.csv", row.names = FALSE)
 
 # Plot resulting distance-time relationship
 Age_model_plot <- ggplot(merged_dat) +
@@ -150,7 +150,7 @@ scale_fill_manual(
         "Realigned ShellChron outcome" = "lightblue"
     )
 ) +
-ggtitle("Age model realignment for specimen A5") +
+ggtitle("Age model realignment for specimen A5_rev") +
 theme_minimal()
 
 # Add original isotope plot

@@ -1,15 +1,15 @@
 # Script to post process ShellChron results and avoid negative time jumps and missed years due to low growth rate estimates
 # by Niels J. de Winter
 # Project "Pseudo_tridacna_ShellChron_Han_Tao.Rproj"
-# Specimen A5
+# Specimen A5_postrev
 
 require(tidyverse)
 require(ggpubr)
 
 # Load data
-dat <- read.csv("A5/A5.csv") # Original d18O data with year markers
-age_model_results <- read.csv("A5/Age_model_results.csv") # Results in terms of age (DOY)
-Growth_rate_results <- read.csv("A5/Growth_rate_results.csv") # Results in terms of growth rate (um/day)
+dat <- read.csv("A5_postrev/A5_postrev.csv") # Original d18O data with year markers
+age_model_results <- read.csv("A5_postrev/Age_model_results.csv") # Results in terms of age (DOY)
+Growth_rate_results <- read.csv("A5_postrev/Growth_rate_results.csv") # Results in terms of growth rate (um/day)
 
 # Combine relevant data into one dataframe and replace NAs with 0
 merged_dat <- select(dat, D, d18Oc, YEARMARKER) |>
@@ -96,8 +96,8 @@ merged_dat$day_new_lower <- apply(simulated_age_models, 1, quantile, probs = 0.0
 merged_dat$day_new_upper <- apply(simulated_age_models, 1, quantile, probs = 0.975)
 
 # Export results
-write.csv(merged_dat, "A5/Realigned_age_model_results_MC.csv", row.names = FALSE)
-write.csv(simulated_age_models, "A5/Realigned_age_model_simulations.csv", row.names = FALSE)
+write.csv(merged_dat, "A5_postrev/Realigned_age_model_results_MC.csv", row.names = FALSE)
+write.csv(simulated_age_models, "A5_postrev/Realigned_age_model_simulations.csv", row.names = FALSE)
 
 # Plot resulting distance-time relationship
 Age_model_plot <- ggplot(merged_dat) +
@@ -106,7 +106,7 @@ geom_ribbon( # Plot uncertainty ribbon
         x = D,
         ymin = day_new_lower,
         ymax = day_new_upper,
-        fill = "Realigned ShellChron outcome"
+        fill = "Post-processed original ShellChron outcome"
     ),
     alpha = 0.5
 ) +
@@ -114,7 +114,7 @@ geom_line( # Plot realigned results
     aes(
         x = D,
         y = day_new,
-        color = "Realigned ShellChron outcome"
+        color = "Post-processed original ShellChron outcome"
     ),
     linewidth = 2
 ) +
@@ -140,17 +140,17 @@ scale_y_continuous(
 scale_color_manual(
     name = "Age model",
     values = c(
-        "Realigned ShellChron outcome" = "blue",
+        "Post-processed original ShellChron outcome" = "blue",
         "Original ShellChron outcome" = "red"
     )
 ) +
 scale_fill_manual(
     name = "Age model",
     values = c(
-        "Realigned ShellChron outcome" = "lightblue"
+        "Post-processed original ShellChron outcome" = "lightblue"
     )
 ) +
-ggtitle("Age model realignment for specimen A5") +
+ggtitle("Age model realignment for specimen A5_postrev") +
 theme_minimal()
 
 # Add original isotope plot
@@ -185,3 +185,103 @@ Age_model_update_combined <- ggarrange(
     heights = c(2, 1),
     align = "v"
 )
+
+# Combine plots of age model updates with and without rerunning ShellChron
+AMR_postrev <- merged_dat
+AMR_rev <- read.csv("A5_rev/Realigned_age_model_results_MC.csv")
+AMR <- read.csv("A5/Realigned_age_model_results_MC.csv")
+
+AMR_comparison <- ggplot(AMR) +
+geom_ribbon( # Plot uncertainty ribbon
+    aes(
+        x = D / 1000,
+        ymin = day_new_lower,
+        ymax = day_new_upper,
+        fill = "Post-processed original ShellChron outcome"
+    ),
+    alpha = 0.5
+) +
+geom_line( # Plot realigned results
+    aes(
+        x = D / 1000,
+        y = day_new,
+        color = "Post-processed original ShellChron outcome"
+    ),
+    linewidth = 2
+) +
+geom_ribbon( # Plot uncertainty ribbon
+    data = AMR_rev,
+    aes(
+        x = D / 1000,
+        ymin = day_new_lower,
+        ymax = day_new_upper,
+        fill = "Reversed outcome rerunning ShellChron"
+    ),
+    alpha = 0.5
+) +
+geom_line( # Plot realigned results
+    data = AMR_rev,
+    aes(
+        x = D / 1000,
+        y = day_new,
+        color = "Reversed outcome rerunning ShellChron"
+    ),
+    linewidth = 2
+) +
+geom_ribbon( # Plot uncertainty ribbon
+    data = AMR_postrev,
+    aes(
+        x = D / 1000,
+        ymin = day_new_lower,
+        ymax = day_new_upper,
+        fill = "Reversed outcome without rerunning ShellChron"
+    ),
+    alpha = 0.5
+) +
+geom_line( # Plot realigned results
+    data = AMR_postrev,
+    aes(
+        x = D / 1000,
+        y = day_new,
+        color = "Reversed outcome without rerunning ShellChron"
+    ),
+    linewidth = 2
+) +
+geom_point( # Plot old results
+    aes(
+        x = D / 1000,
+        y = mean.day,
+        color = "Unprocessed original ShellChron outcome"
+    ),
+    alpha = 0.3
+) +
+geom_vline( # Plot position of year markers
+    xintercept = merged_dat$D[which(merged_dat$YEARMARKER == 1)] / 1000
+) +
+scale_x_continuous("Distance (mm)") +
+scale_y_continuous(
+    "Age (days)",
+    sec.axis = sec_axis(
+        trans = ~. / 365,
+        name = "Age (years)"
+    )
+) +
+scale_color_manual(
+    name = "Age model",
+    values = c(
+        "Post-processed original ShellChron outcome" = "blue",
+        "Reversed outcome rerunning ShellChron" = "green",
+        "Reversed outcome without rerunning ShellChron" = "orange",
+        "Unprocessed original ShellChron outcome" = "red"
+    )
+) +
+scale_fill_manual(
+    name = "Age model",
+    values = c(
+        "Post-processed original ShellChron outcome" = "lightblue",
+        "Reversed outcome rerunning ShellChron" = "lightgreen",
+        "Reversed outcome without rerunning ShellChron" = "moccasin"
+    )
+) +
+ggtitle("Age model realignment for specimen A5") +
+theme_minimal()
