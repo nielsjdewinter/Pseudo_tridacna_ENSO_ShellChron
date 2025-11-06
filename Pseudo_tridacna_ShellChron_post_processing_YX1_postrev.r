@@ -86,7 +86,7 @@ for(i in 1:N){
         )
         simulated_age_models[which(merged_dat$year == 0), i] <-
             simulated_age_models[which(merged_dat$YEARMARKER == 1 & merged_dat$year == 1), i] -
-            cumsum(Times_year0) # Subtract time values for year 0 based on original time steps
+            rev(cumsum(rev(Times_year0))) # Subtract time values for year 0 based on original time steps (cumulative in reverse order)
     }
 }
 
