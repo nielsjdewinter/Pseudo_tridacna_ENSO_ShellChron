@@ -52,13 +52,14 @@ for(i in 1:N){
         Times <- D_diff / GR_sampled # Calculate time steps
         Times[which(Times == Inf)] <- 0 # Handle growth stops
         if(year == 1){
-            first_sample_time <- rnorm( # Sample first time point from normal distribution
+            first_sample_year1 <- rnorm( # Sample first time point for year 1 from normal distribution centered at 0 and with sd based on age model uncertainty
                 n = 1,
-                mean = merged_dat$mean.day[1],
-                sd = merged_dat$se.day[1]
+                mean = 0,
+                sd = mean(merged_dat$se.day)
             )
+            "%% 365" # Convert to days on a 0-365 scale (get rid of negative values)
             Times_days <- Times * Days_tot / sum(Times) # Convert time steps to total number of days
-            Times_days_cum <- cumsum(Times_days) + first_sample_time # Find cumulative time steps and add the first sampled time point
+            Times_days_cum <- cumsum(Times_days) - cumsum(Times_days)[1] + first_sample_year1 # Find cumulative time steps, realign to zero and add the first sampled time point
             simulated_age_models[which(merged_dat$year == year), i] <- Times_days_cum
         } else {
             Times_days <- Times * Days_tot / sum(Times) # Convert time steps to total number of days
@@ -86,8 +87,10 @@ for(i in 1:N){
         )
         simulated_age_models[which(merged_dat$year == 0), i] <-
             simulated_age_models[which(merged_dat$YEARMARKER == 1 & merged_dat$year == 1), i] -
-            rev(cumsum(rev(Times_year0))) # Subtract time values for year 0 based on original time steps
+            rev(cumsum(rev(Times_year0))) # Subtract time values for year 0 based on original time steps (cumulative in reverse order)
     }
+    # Make sure no negative ages remain
+    simulated_age_models[, i] <- simulated_age_models[, i] + 365 # Shift all ages by 1 year to get rid of negative ages
 }
 
 # Calculate median and 95% confidence intervals of simulated age models
@@ -96,8 +99,8 @@ merged_dat$day_new_lower <- apply(simulated_age_models, 1, quantile, probs = 0.0
 merged_dat$day_new_upper <- apply(simulated_age_models, 1, quantile, probs = 0.975)
 
 # Export results
-write.csv(merged_dat, "A5_postrev/Realigned_age_model_results_MC.csv", row.names = FALSE)
-write.csv(simulated_age_models, "A5_postrev/Realigned_age_model_simulations.csv", row.names = FALSE)
+write.csv(merged_dat, "A5_postrev/A5_postrev_Realigned_age_model_results_MC.csv", row.names = FALSE)
+write.csv(simulated_age_models, "A5_postrev/A5_postrev_Realigned_age_model_simulations.csv", row.names = FALSE)
 
 # Plot resulting distance-time relationship
 Age_model_plot <- ggplot(merged_dat) +
@@ -106,7 +109,7 @@ geom_ribbon( # Plot uncertainty ribbon
         x = D,
         ymin = day_new_lower,
         ymax = day_new_upper,
-        fill = "Post-processed original ShellChron outcome"
+        fill = "Realigned ShellChron outcome"
     ),
     alpha = 0.5
 ) +
@@ -114,7 +117,7 @@ geom_line( # Plot realigned results
     aes(
         x = D,
         y = day_new,
-        color = "Post-processed original ShellChron outcome"
+        color = "Realigned ShellChron outcome"
     ),
     linewidth = 2
 ) +
@@ -140,14 +143,14 @@ scale_y_continuous(
 scale_color_manual(
     name = "Age model",
     values = c(
-        "Post-processed original ShellChron outcome" = "blue",
+        "Realigned ShellChron outcome" = "blue",
         "Original ShellChron outcome" = "red"
     )
 ) +
 scale_fill_manual(
     name = "Age model",
     values = c(
-        "Post-processed original ShellChron outcome" = "lightblue"
+        "Realigned ShellChron outcome" = "lightblue"
     )
 ) +
 ggtitle("Age model realignment for specimen A5_postrev") +
@@ -194,7 +197,7 @@ AMR <- read.csv("A5/Realigned_age_model_results_MC.csv")
 AMR_comparison <- ggplot(AMR) +
 geom_ribbon( # Plot uncertainty ribbon
     aes(
-        x = D / 1000,
+        x = D,
         ymin = day_new_lower,
         ymax = day_new_upper,
         fill = "Post-processed original ShellChron outcome"
@@ -203,7 +206,7 @@ geom_ribbon( # Plot uncertainty ribbon
 ) +
 geom_line( # Plot realigned results
     aes(
-        x = D / 1000,
+        x = D,
         y = day_new,
         color = "Post-processed original ShellChron outcome"
     ),
@@ -212,7 +215,7 @@ geom_line( # Plot realigned results
 geom_ribbon( # Plot uncertainty ribbon
     data = AMR_rev,
     aes(
-        x = D / 1000,
+        x = D,
         ymin = day_new_lower,
         ymax = day_new_upper,
         fill = "Reversed outcome rerunning ShellChron"
@@ -222,7 +225,7 @@ geom_ribbon( # Plot uncertainty ribbon
 geom_line( # Plot realigned results
     data = AMR_rev,
     aes(
-        x = D / 1000,
+        x = D,
         y = day_new,
         color = "Reversed outcome rerunning ShellChron"
     ),
@@ -231,7 +234,7 @@ geom_line( # Plot realigned results
 geom_ribbon( # Plot uncertainty ribbon
     data = AMR_postrev,
     aes(
-        x = D / 1000,
+        x = D,
         ymin = day_new_lower,
         ymax = day_new_upper,
         fill = "Reversed outcome without rerunning ShellChron"
@@ -241,7 +244,7 @@ geom_ribbon( # Plot uncertainty ribbon
 geom_line( # Plot realigned results
     data = AMR_postrev,
     aes(
-        x = D / 1000,
+        x = D,
         y = day_new,
         color = "Reversed outcome without rerunning ShellChron"
     ),
@@ -249,14 +252,14 @@ geom_line( # Plot realigned results
 ) +
 geom_point( # Plot old results
     aes(
-        x = D / 1000,
+        x = D,
         y = mean.day,
         color = "Unprocessed original ShellChron outcome"
     ),
     alpha = 0.3
 ) +
 geom_vline( # Plot position of year markers
-    xintercept = merged_dat$D[which(merged_dat$YEARMARKER == 1)] / 1000
+    xintercept = merged_dat$D[which(merged_dat$YEARMARKER == 1)]
 ) +
 scale_x_continuous("Distance (mm)") +
 scale_y_continuous(

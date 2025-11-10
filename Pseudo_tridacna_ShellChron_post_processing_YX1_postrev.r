@@ -52,13 +52,14 @@ for(i in 1:N){
         Times <- D_diff / GR_sampled # Calculate time steps
         Times[which(Times == Inf)] <- 0 # Handle growth stops
         if(year == 1){
-            first_sample_time <- rnorm( # Sample first time point from normal distribution
+            first_sample_year1 <- rnorm( # Sample first time point for year 1 from normal distribution centered at 0 and with sd based on age model uncertainty
                 n = 1,
-                mean = merged_dat$mean.day[1],
-                sd = merged_dat$se.day[1]
+                mean = 0,
+                sd = mean(merged_dat$se.day)
             )
+            "%% 365" # Convert to days on a 0-365 scale (get rid of negative values)
             Times_days <- Times * Days_tot / sum(Times) # Convert time steps to total number of days
-            Times_days_cum <- cumsum(Times_days) + first_sample_time # Find cumulative time steps and add the first sampled time point
+            Times_days_cum <- cumsum(Times_days) - cumsum(Times_days)[1] + first_sample_year1 # Find cumulative time steps, realign to zero and add the first sampled time point
             simulated_age_models[which(merged_dat$year == year), i] <- Times_days_cum
         } else {
             Times_days <- Times * Days_tot / sum(Times) # Convert time steps to total number of days
@@ -88,6 +89,8 @@ for(i in 1:N){
             simulated_age_models[which(merged_dat$YEARMARKER == 1 & merged_dat$year == 1), i] -
             rev(cumsum(rev(Times_year0))) # Subtract time values for year 0 based on original time steps (cumulative in reverse order)
     }
+    # Make sure no negative ages remain
+    simulated_age_models[, i] <- simulated_age_models[, i] + 365 # Shift all ages by 1 year to prevent negative ages
 }
 
 # Calculate median and 95% confidence intervals of simulated age models
@@ -96,8 +99,8 @@ merged_dat$day_new_lower <- apply(simulated_age_models, 1, quantile, probs = 0.0
 merged_dat$day_new_upper <- apply(simulated_age_models, 1, quantile, probs = 0.975)
 
 # Export results
-write.csv(merged_dat, "YX1_postrev/Realigned_age_model_results_MC.csv", row.names = FALSE)
-write.csv(simulated_age_models, "YX1_postrev/Realigned_age_model_simulations.csv", row.names = FALSE)
+write.csv(merged_dat, "YX1_postrev/YX1_postrev_Realigned_age_model_results_MC.csv", row.names = FALSE)
+write.csv(simulated_age_models, "YX1_postrev/YX1_postrev_Realigned_age_model_simulations.csv", row.names = FALSE)
 
 # Plot resulting distance-time relationship
 Age_model_plot <- ggplot(merged_dat) +
